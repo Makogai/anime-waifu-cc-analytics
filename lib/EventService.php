@@ -148,13 +148,15 @@ final class EventService
         }
     }
 
-    private function userScope(?string $scopeUser, string $column = 'username'): array
+    private function userScope(?string $scopeUser): array
     {
         if ($scopeUser === null || $scopeUser === '') {
             return ['', []];
         }
 
-        return [" AND {$column} = :scope_user", [':scope_user' => $scopeUser]];
+        $where = $this->db->sql()->usernameEquals(':scope_user');
+
+        return [" AND {$where}", [':scope_user' => $scopeUser]];
     }
 
     public function getOverviewStats(TimeRange $range, ?string $scopeUser = null): array
@@ -173,7 +175,7 @@ final class EventService
         $sessionSql = '';
         $sessionParams = [];
         if ($scopeUser) {
-            $sessionSql = ' AND username = :scope_user';
+            $sessionSql = ' AND ' . $sql->usernameEquals(':scope_user');
             $sessionParams = [':scope_user' => $scopeUser];
         }
 
@@ -196,8 +198,8 @@ final class EventService
             'range_label' => $range->label,
             'total_events' => $count(''),
             'total_players' => $playerCount,
-            'period_events' => $count("AND created_at >= {$since}"),
-            'period_purchases' => $count("AND event_name = 'pack_purchase' AND created_at >= {$since}"),
+            'period_events' => $count(" AND created_at >= {$since}"),
+            'period_purchases' => $count(" AND event_name = 'pack_purchase' AND created_at >= {$since}"),
             'active_sessions' => (int) $stmtSessions->fetchColumn(),
             'avg_uptime_min' => round((float) $stmtUptime->fetchColumn() / 60, 1),
         ];
@@ -266,7 +268,7 @@ final class EventService
         $params = [];
         $filterUser = $scopeUser ?? $username;
         if ($filterUser) {
-            $sql .= ' AND username = :u';
+            $sql .= ' AND ' . $this->db->sql()->usernameEquals(':u');
             $params[':u'] = $filterUser;
         }
         if ($eventName) {
@@ -283,11 +285,12 @@ final class EventService
     {
         $online = $this->db->sql()->onlineSince();
         if ($scopeUser) {
+            $where = $this->db->sql()->usernameEquals(':u');
             $stmt = $this->db->pdo()->prepare(
                 "SELECT p.*,
                     (SELECT COUNT(*) FROM sessions s WHERE s.username = p.username AND s.ended_at IS NULL
                         AND s.last_heartbeat >= {$online}) AS online
-                 FROM players p WHERE p.username = :u LIMIT 1"
+                 FROM players p WHERE {$where} LIMIT 1"
             );
             $stmt->execute([':u' => $scopeUser]);
             return $stmt->fetchAll();
@@ -304,7 +307,7 @@ final class EventService
     public function getSessions(TimeRange $range, int $limit = 30, ?string $scopeUser = null): array
     {
         $since = $range->sinceClause($this->db->sql());
-        [$userSql, $userParams] = $this->userScope($scopeUser, 'username');
+        [$userSql, $userParams] = $this->userScope($scopeUser);
         $sql = "SELECT * FROM sessions
              WHERE COALESCE(started_at, last_heartbeat) >= $since {$userSql}
              ORDER BY COALESCE(ended_at, last_heartbeat, started_at) DESC

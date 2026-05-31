@@ -77,6 +77,15 @@ function require_api_key(): void
 function dashboard_start_session(): void
 {
     if (session_status() !== PHP_SESSION_ACTIVE) {
+        $secure = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off')
+            || (isset($_SERVER['HTTP_X_FORWARDED_PROTO']) && $_SERVER['HTTP_X_FORWARDED_PROTO'] === 'https');
+        session_set_cookie_params([
+            'lifetime' => 0,
+            'path' => '/',
+            'secure' => $secure,
+            'httponly' => true,
+            'samesite' => 'Lax',
+        ]);
         session_start();
     }
 }
@@ -125,12 +134,15 @@ function require_dashboard_auth(): void
             exit;
         }
 
-        if ($username !== '' && app_auth()->login($username, $password)) {
-            $_SESSION['dashboard_auth'] = true;
-            $_SESSION['dashboard_admin'] = false;
-            $_SESSION['dashboard_username'] = $username;
-            header('Location: ' . strtok($_SERVER['REQUEST_URI'], '?'));
-            exit;
+        if ($username !== '') {
+            $loggedInAs = app_auth()->login($username, $password);
+            if ($loggedInAs !== null) {
+                $_SESSION['dashboard_auth'] = true;
+                $_SESSION['dashboard_admin'] = false;
+                $_SESSION['dashboard_username'] = $loggedInAs;
+                header('Location: ' . strtok($_SERVER['REQUEST_URI'], '?'));
+                exit;
+            }
         }
 
         $GLOBALS['login_error'] = 'Invalid username or password';

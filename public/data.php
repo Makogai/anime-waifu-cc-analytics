@@ -17,7 +17,8 @@ if ($scope !== null) {
     $filterUser = $scope;
 }
 
-json_response([
+try {
+    json_response([
     'range' => [
         'key' => $range->key,
         'label' => $range->label,
@@ -42,4 +43,7 @@ json_response([
         $row['props'] = json_decode($row['props'] ?? '{}', true);
         return $row;
     }, $svc->getRecentEvents($range, 50, $filterUser, 'suggestion', $scope)),
-]);
+    ]);
+} catch (Throwable $e) {
+    json_response(['error' => $e->getMessage()], 500);
+}

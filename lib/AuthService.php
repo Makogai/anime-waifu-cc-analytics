@@ -40,7 +40,8 @@ final class AuthService
         return ['ok' => true, 'registered' => true, 'updated' => false, 'username' => $username];
     }
 
-    public function login(string $username, string $password): bool
+    /** @return string|null Canonical username on success */
+    public function login(string $username, string $password): ?string
     {
         $username = trim($username);
         $where = $this->db->sql()->usernameEquals(':u');
@@ -50,12 +51,13 @@ final class AuthService
         $stmt->execute([':u' => $username]);
         $row = $stmt->fetch();
         if (!$row || !password_verify($password, $row['password_hash'])) {
-            return false;
+            return null;
         }
+        $canonical = (string) $row['username'];
         $this->db->pdo()->prepare('UPDATE user_accounts SET last_login = :now WHERE username = :u')
-            ->execute([':now' => gmdate('Y-m-d H:i:s'), ':u' => $row['username']]);
+            ->execute([':now' => gmdate('Y-m-d H:i:s'), ':u' => $canonical]);
 
-        return true;
+        return $canonical;
     }
 
     public function loginAdmin(string $password): bool

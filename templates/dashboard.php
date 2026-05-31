@@ -35,8 +35,8 @@
           <option value="10m">Last 10 min</option>
           <option value="30m">Last 30 min</option>
           <option value="1h">Last 1 hour</option>
-          <option value="24h">Last 24 hours</option>
-          <option value="7d" selected>Last 7 days</option>
+          <option value="24h" selected>Last 24 hours</option>
+          <option value="7d">Last 7 days</option>
           <option value="30d">Last 30 days</option>
         </select>
       </label>
@@ -45,6 +45,7 @@
   </header>
 
   <main class="container">
+    <div id="loadError" class="load-error glass" hidden role="alert"></div>
     <section class="stats-grid" id="statsGrid">
       <article class="stat-card glass"><span class="label">Total events</span><strong id="statEvents">—</strong></article>
       <article class="stat-card glass accent"><span class="label" id="statEventsPeriodLabel">Events (range)</span><strong id="statEventsPeriod">—</strong></article>

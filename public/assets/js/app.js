@@ -29,7 +29,23 @@
     }
   }
 
+  function showError(msg) {
+    const el = document.getElementById("loadError");
+    if (!el) return;
+    if (!msg) {
+      el.hidden = true;
+      el.textContent = "";
+      return;
+    }
+    el.hidden = false;
+    el.textContent = msg;
+  }
+
   function renderCharts(data) {
+    if (typeof Chart === "undefined") {
+      showError("Charts unavailable (Chart.js did not load). Tables below should still update.");
+      return;
+    }
     const series = data.events_over_time || data.events_per_day || [];
 
     destroyChart("activity");
@@ -183,10 +199,33 @@
     let url = "/data.php?range=" + encodeURIComponent(range);
     if (user) url += "&username=" + encodeURIComponent(user);
     if (event) url += "&event=" + encodeURIComponent(event);
-    const res = await fetch(url);
-    const data = await res.json();
-    renderCharts(data);
-    renderTables(data);
+    try {
+      const res = await fetch(url, { credentials: "same-origin" });
+      const text = await res.text();
+      let data;
+      try {
+        data = JSON.parse(text);
+      } catch (parseErr) {
+        showError("Dashboard API returned invalid JSON (HTTP " + res.status + "). Try logging out and back in.");
+        console.error("data.php response:", text.slice(0, 500));
+        return;
+      }
+      if (!res.ok) {
+        showError(data.error || ("API error HTTP " + res.status));
+        return;
+      }
+      showError("");
+      renderTables(data);
+      try {
+        renderCharts(data);
+      } catch (chartErr) {
+        console.error(chartErr);
+        showError("Charts failed: " + chartErr.message);
+      }
+    } catch (err) {
+      showError("Could not load dashboard: " + err.message);
+      console.error(err);
+    }
   }
 
   document.getElementById("refreshBtn").addEventListener("click", load);

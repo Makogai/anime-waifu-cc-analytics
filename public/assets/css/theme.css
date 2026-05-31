@@ -121,6 +121,13 @@ select:focus, input:focus { outline: 2px solid rgba(255,107,214,0.35); }
 .panel-head h2 { margin: 0; }
 .panel-hint { margin: 0 0 1rem; font-size: 0.88rem; }
 .suggestion-text { max-width: 42rem; white-space: pre-wrap; word-break: break-word; }
+.load-error {
+  margin-bottom: 1rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid rgba(255, 107, 138, 0.45);
+  color: #ffb4c8;
+  font-size: 0.92rem;
+}
 .filters { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 
 .table-wrap { overflow: auto; border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); }
