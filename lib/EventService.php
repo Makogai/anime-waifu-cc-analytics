@@ -379,4 +379,58 @@ final class EventService
         $stmt->execute($userParams);
         return $stmt->fetchAll();
     }
+
+    /** @return list<array<string, mixed>> */
+    public function getCollectionStats(TimeRange $range, ?string $scopeUser = null): array
+    {
+        $sql = $this->db->sql();
+        $since = $range->sinceClause($sql);
+        [$userSql, $userParams] = $this->userScope($scopeUser);
+        $rankExpr = $sql->jsonExtract('props', '$.rank');
+        $variantExpr = $sql->jsonExtract('props', '$.variant');
+        $query = "SELECT {$rankExpr} AS pack_rank,
+                    {$variantExpr} AS variant,
+                    SUM(CASE WHEN event_name = 'pack_purchase' THEN 1 ELSE 0 END) AS purchases,
+                    SUM(CASE WHEN event_name = 'pack_open' THEN 1 ELSE 0 END) AS opens,
+                    SUM(CASE WHEN event_name = 'pack_placed' THEN 1 ELSE 0 END) AS placed,
+                    COUNT(*) AS total
+             FROM events
+             WHERE event_name IN ('pack_purchase', 'pack_open', 'pack_placed')
+               AND created_at >= {$since}
+               AND {$rankExpr} IS NOT NULL
+               AND {$variantExpr} IS NOT NULL
+               AND TRIM({$rankExpr}) != ''
+               AND TRIM({$variantExpr}) != ''
+               {$userSql}
+             GROUP BY pack_rank, variant
+             ORDER BY total DESC, pack_rank ASC, variant ASC
+             LIMIT 80";
+        $stmt = $this->db->pdo()->prepare($query);
+        $stmt->execute($userParams);
+        return $stmt->fetchAll();
+    }
+
+    /** @return list<array<string, mixed>> */
+    public function getUiClickSummary(TimeRange $range, ?string $scopeUser = null, int $limit = 40): array
+    {
+        $sql = $this->db->sql();
+        $since = $range->sinceClause($sql);
+        [$userSql, $userParams] = $this->userScope($scopeUser);
+        $tab = $sql->jsonExtract('props', '$.tab');
+        $control = $sql->jsonExtract('props', '$.control');
+        $controlType = $sql->jsonExtract('props', '$.control_type');
+        $query = "SELECT {$tab} AS tab,
+                    {$control} AS control,
+                    {$controlType} AS control_type,
+                    COUNT(*) AS total
+             FROM events
+             WHERE event_name = 'ui_click'
+               AND created_at >= {$since} {$userSql}
+             GROUP BY tab, control, control_type
+             ORDER BY total DESC
+             LIMIT " . (int) $limit;
+        $stmt = $this->db->pdo()->prepare($query);
+        $stmt->execute($userParams);
+        return $stmt->fetchAll();
+    }
 }

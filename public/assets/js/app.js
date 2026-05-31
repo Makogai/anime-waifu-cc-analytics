@@ -15,7 +15,7 @@
   function fmtProps(props) {
     if (!props || typeof props !== "object") return "";
     const parts = [];
-    ["rank", "variant", "slot", "feature", "enabled", "price", "uptime_sec", "difficulty", "mode", "pack_id", "tool", "content"].forEach(function (k) {
+    ["rank", "variant", "slot", "feature", "enabled", "price", "uptime_sec", "difficulty", "mode", "pack_id", "tool", "content", "tab", "control", "control_type", "value"].forEach(function (k) {
       if (props[k] !== undefined && props[k] !== null) parts.push(k + ": " + props[k]);
     });
     if (!parts.length) return JSON.stringify(props).slice(0, 80);
@@ -190,6 +190,30 @@
         const text = props.content != null ? String(props.content) : fmtProps(props);
         return "<tr><td data-label=\"Time\">" + escapeHtml(e.created_at) + "</td><td data-label=\"Player\">" + escapeHtml(e.username || "—") + "</td><td data-label=\"Idea\" class=\"suggestion-text\">" + escapeHtml(text) + "</td></tr>";
       }).join("") || "<tr><td colspan=\"3\">No suggestions yet</td></tr>";
+    }
+
+    const collectionBody = document.getElementById("collectionBody");
+    if (collectionBody) {
+      collectionBody.innerHTML = (data.collection_stats || []).map(function (r) {
+        return "<tr><td data-label=\"Rank\"><strong>" + escapeHtml(r.pack_rank || "—") + "</strong></td><td data-label=\"Variant\">" + escapeHtml(r.variant || "—") + "</td><td data-label=\"Bought\">" + (r.purchases || 0) + "</td><td data-label=\"Opened\">" + (r.opens || 0) + "</td><td data-label=\"Placed\">" + (r.placed || 0) + "</td><td data-label=\"Total\"><strong>" + (r.total || 0) + "</strong></td></tr>";
+      }).join("") || "<tr><td colspan=\"6\">No card data yet — buy or open packs in-game</td></tr>";
+    }
+
+    const actionSummaryBody = document.getElementById("actionSummaryBody");
+    if (actionSummaryBody) {
+      const summary = (data.action_counts || []).filter(function (r) {
+        return !["session_heartbeat", "ping"].includes(r.event_name);
+      });
+      actionSummaryBody.innerHTML = summary.map(function (r) {
+        return "<tr><td data-label=\"Action\" class=\"event-name\">" + escapeHtml(r.event_name) + "</td><td data-label=\"Count\"><strong>" + r.total + "</strong></td></tr>";
+      }).join("") || "<tr><td colspan=\"2\">No actions in this range</td></tr>";
+    }
+
+    const uiClicksBody = document.getElementById("uiClicksBody");
+    if (uiClicksBody) {
+      uiClicksBody.innerHTML = (data.ui_clicks || []).map(function (r) {
+        return "<tr><td data-label=\"Tab\">" + escapeHtml(r.tab || "—") + "</td><td data-label=\"Control\">" + escapeHtml(r.control || "—") + "</td><td data-label=\"Type\">" + escapeHtml(r.control_type || "—") + "</td><td data-label=\"Clicks\"><strong>" + r.total + "</strong></td></tr>";
+      }).join("") || "<tr><td colspan=\"4\">No UI clicks logged yet</td></tr>";
     }
   }
 

@@ -505,11 +505,53 @@ function Backend.trackAction(eventName, props, source)
 end
 
 function Backend.trackToggle(feature, enabled, tab)
+   Backend.trackUi(tab, feature, "toggle", { value = enabled and "on" or "off" })
    return Backend.trackAction("feature_toggle", {
       feature = feature,
       enabled = enabled == true,
       tab = tab or "unknown",
    }, "script_manual")
+end
+
+local function joinOptions(options)
+   if type(options) ~= "table" then
+      return tostring(options or "")
+   end
+   local out = {}
+   for _, v in ipairs(options) do
+      table.insert(out, tostring(v))
+   end
+   return table.concat(out, ", ")
+end
+
+function Backend.trackUi(tab, control, controlType, extra)
+   local props = {
+      tab = tab or "unknown",
+      control = control or "unknown",
+      control_type = controlType or "unknown",
+   }
+   if type(extra) == "table" then
+      for k, v in pairs(extra) do
+         props[k] = v
+      end
+   end
+   return Backend.trackAction("ui_click", props, "script_manual")
+end
+
+local function parsePackRankVariant(name)
+   if type(name) ~= "string" or name == "" then
+      return nil, nil
+   end
+   local rank, variant = name:match("^([^_]+)_([^_]+)")
+   if rank and variant then
+      variant = variant:gsub("^_", "")
+      return rank, variant
+   end
+   local stripped = name:gsub("^ActivePack%-", "")
+   if stripped ~= name then
+      return stripped, nil
+   end
+   return nil, nil
 end
 
 function Backend.trackSync(eventName, props)
@@ -881,6 +923,7 @@ MainTab:CreateToggle({
 MainTab:CreateButton({
    Name = "Collect All Cash",
    Callback = function()
+      Backend.trackUi("Main", "Collect All Cash", "button")
       CollectAllCardCash:FireServer()
       Backend.trackAction("cash_collect", { mode = "all" }, "script_manual")
    end,
@@ -889,6 +932,7 @@ MainTab:CreateButton({
 MainTab:CreateButton({
    Name = "Collect All GradeTokens (BETA)",
    Callback = function()
+      Backend.trackUi("Main", "Collect All GradeTokens", "button")
       local character = Player.Character or Player.CharacterAdded:Wait()
       local hrp = character:WaitForChild("HumanoidRootPart")
       local originalCFrame = hrp.CFrame
@@ -1012,6 +1056,7 @@ MainTab:CreateInput({
    RemoveTextAfterFocusLost = false,
    Flag = "ServerhopDelayInput",
    Callback = function(Text)
+      Backend.trackUi("Main", "Serverhop Delay", "input", { value = Text })
       local num = tonumber(Text)
       if num and num > 0 then
          SaveFile.ServerhopDelay = num
@@ -1093,6 +1138,7 @@ AutoBuy:CreateDropdown({
    MultipleOptions = true,
    Flag = "RankDropdown",
    Callback = function(Options)
+      Backend.trackUi("AutoBuy", "Select Active Packs", "dropdown", { value = joinOptions(Options) })
       for rank in pairs(SaveFile.SelectedRanks) do
          SaveFile.SelectedRanks[rank] = false
       end
@@ -1111,6 +1157,7 @@ AutoBuy:CreateDropdown({
    MultipleOptions = true,
    Flag = "RarityDropdown",
    Callback = function(Options)
+      Backend.trackUi("AutoBuy", "Select Rarities", "dropdown", { value = joinOptions(Options) })
       for rarity in pairs(SaveFile.SelectedRarities) do
          SaveFile.SelectedRarities[rarity] = false
       end
@@ -1128,6 +1175,7 @@ AutoBuy:CreateInput({
    RemoveTextAfterFocusLost = false,
    Flag = "DiscordWebhookInput",
    Callback = function(Text)
+      Backend.trackUi("AutoBuy", "Discord Webhook URL", "input", { value = Text ~= "" and "set" or "cleared" })
       Text = Text:gsub("^%s+", ""):gsub("%s+$", "")
       SaveFile.DiscordWebhook = Text
       if Text ~= "" and Text:find("discord") then
@@ -1163,6 +1211,7 @@ AutoBuy:CreateDropdown({
    Flag = "DiscordNotifyModeDropdown",
    Callback = function(Options)
       local choice = Options[1] or "Instant"
+      Backend.trackUi("AutoBuy", "Discord notify mode", "dropdown", { value = choice })
       if choice:find("Backend") then
          if SaveFile.DiscordNotifyMode == "summary" and #DiscordBuyBuffer.entries > 0 then
             flushDiscordBuySummary("switched to backend")
@@ -1209,6 +1258,7 @@ AutoBuy:CreateDropdown({
    Flag = "DiscordSummaryIntervalDropdown",
    Callback = function(Options)
       local choice = Options[1] or "10 min"
+      Backend.trackUi("AutoBuy", "Discord summary interval", "dropdown", { value = choice })
       local n = tonumber(choice:match("%d+")) or 10
       SaveFile.DiscordSummaryMinutes = n
       if SaveFile.DiscordNotifyMode == "summary" then
@@ -1226,6 +1276,7 @@ AutoBuy:CreateDropdown({
 AutoBuy:CreateButton({
    Name = "Send Discord summary now",
    Callback = function()
+      Backend.trackUi("AutoBuy", "Send Discord summary now", "button")
       if not discordNotificationsEnabled() then
          Rayfield:Notify({ Title = "Discord", Content = "Enable notify + set webhook first.", Duration = 4, Image = 4483362458 })
          return
@@ -1246,6 +1297,7 @@ AutoBuy:CreateButton({
 AutoBuy:CreateButton({
    Name = "Test Discord Webhook",
    Callback = function()
+      Backend.trackUi("AutoBuy", "Test Discord Webhook", "button")
       if SaveFile.DiscordWebhook == "" or not SaveFile.DiscordWebhook:find("discord") then
          Rayfield:Notify({
             Title = "Discord",
@@ -1283,6 +1335,7 @@ AutoBuy:CreateInput({
    RemoveTextAfterFocusLost = false,
    Flag = "AutoRollDelayInput",
    Callback = function(Text)
+      Backend.trackUi("AutoBuy", "Auto Roll Delay", "input", { value = Text })
       local num = tonumber(Text)
       if num and num > 0 then
          SaveFile.AutoRollDelay = num
@@ -1296,6 +1349,7 @@ AutoBuy:CreateInput({
    RemoveTextAfterFocusLost = false,
    Flag = "AutoBuyDelayInput",
    Callback = function(Text)
+      Backend.trackUi("AutoBuy", "Auto Buy Scan Delay", "input", { value = Text })
       local num = tonumber(Text)
       if num and num > 0 then
          SaveFile.AutoBuyDelay = num
@@ -1309,6 +1363,7 @@ AutoBuy:CreateInput({
    RemoveTextAfterFocusLost = false,
    Flag = "AutoBuyVerifyDelayInput",
    Callback = function(Text)
+      Backend.trackUi("AutoBuy", "Auto Buy Verify Delay", "input", { value = Text })
       local num = tonumber(Text)
       if num and num >= 0 then
          SaveFile.AutoBuyVerifyDelay = num
@@ -1422,7 +1477,12 @@ AutoPlace:CreateToggle({
 
                      if timerLabel and timerLabel.Text == "Ready" then
                         CollectRemote:FireServer(pack.Name)
-                        Backend.trackAction("pack_open", { pack_id = pack.Name })
+                        local rank, variant = parsePackRankVariant(pack.Name)
+                        Backend.trackAction("pack_open", {
+                           pack_id = pack.Name,
+                           rank = rank,
+                           variant = variant,
+                        })
                         task.wait(0.1)
                      end
                   end
@@ -1560,6 +1620,7 @@ AnalyticsTab:CreateParagraph({
 AnalyticsTab:CreateButton({
    Name = "Test backend connection",
    Callback = function()
+      Backend.trackUi("Analytics", "Test backend connection", "button")
       local ok, err = Backend.trackSync("ping", { test = true })
       if ok then
          Rayfield:Notify({ Title = "Analytics", Content = "Backend OK - check your dashboard.", Duration = 4, Image = 4483362458 })
@@ -1572,6 +1633,7 @@ AnalyticsTab:CreateButton({
 AnalyticsTab:CreateButton({
    Name = "Show dashboard login",
    Callback = function()
+      Backend.trackUi("Analytics", "Show dashboard login", "button")
       local auth = loadBackendAuthFromDisk()
       if not auth or not auth.password then
          local ok, err = ensureBackendDashboardAccount(true)
@@ -1601,6 +1663,7 @@ AnalyticsTab:CreateButton({
 AnalyticsTab:CreateButton({
    Name = "Reset dashboard password",
    Callback = function()
+      Backend.trackUi("Analytics", "Reset dashboard password", "button")
       if hasExecutorFilesystem() and isfile(BACKEND_AUTH_FILE) then
          pcall(function() delfile(BACKEND_AUTH_FILE) end)
       end
@@ -1634,6 +1697,7 @@ local ConfigStatus = ConfigTab:CreateParagraph({
 ConfigTab:CreateButton({
    Name = "Save Config",
    Callback = function()
+      Backend.trackUi("Config", "Save Config", "button")
       if not hasExecutorFilesystem() then
          ConfigStatus:Set({
             Title = "Status",
@@ -1671,6 +1735,7 @@ ConfigTab:CreateButton({
 ConfigTab:CreateButton({
    Name = "Load Config",
    Callback = function()
+      Backend.trackUi("Config", "Load Config", "button")
       local ok, err = pcall(function()
          Rayfield:LoadConfiguration()
       end)
@@ -1792,6 +1857,7 @@ CreditsTab:CreateToggle({
    CurrentValue = false,
    Flag = "AntiAfkFlag",
    Callback = function(Value)
+      Backend.trackToggle("AntiAfk", Value, "Credits")
       AntiAfkEnabled = Value
 
       if AntiAfkThread then
@@ -1850,6 +1916,7 @@ CreditsTab:CreateDropdown({
    MultipleOptions = false,
    Flag = "ThemeSelector",
    Callback = function(Option)
+      Backend.trackUi("Credits", "Select UI Theme", "dropdown", { value = joinOptions(Option) })
       local selectedName = Option[1]
       local themeId = Themes[selectedName]
       if themeId then
@@ -1864,6 +1931,7 @@ CreditsTab:CreateInput({
    PlaceholderText = "Type your idea and press Enter...",
    RemoveTextAfterFocusLost = true,
    Callback = function(Text)
+      Backend.trackUi("Credits", "Suggested Features", "input", { value = "submitted" })
       local trimmed = trimStoredText(tostring(Text or ""))
       if trimmed == "" then
          return
@@ -1892,6 +1960,7 @@ CreditsTab:CreateInput({
 CreditsTab:CreateButton({
    Name = "Destroy UI",
    Callback = function()
+      Backend.trackUi("Credits", "Destroy UI", "button")
       SaveFile.AutoCollect = false
       SaveFile.AutoRoll = false
       SaveFile.AutoOpenPacks = false

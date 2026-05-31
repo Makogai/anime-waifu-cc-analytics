@@ -32,6 +32,8 @@ try {
     'events_over_time' => $svc->getEventsOverTime($range, $scope),
     'purchases_by_rank' => $svc->getPurchasesByRank($range, $scope),
     'purchases_by_variant' => $svc->getPurchasesByVariant($range, $scope),
+    'collection_stats' => $svc->getCollectionStats($range, $scope),
+    'ui_clicks' => $svc->getUiClickSummary($range, $scope),
     'feature_toggles' => $svc->getFeatureToggles($range, $scope),
     'players' => $svc->getPlayers($scope),
     'sessions' => $svc->getSessions($range, 40, $scope),

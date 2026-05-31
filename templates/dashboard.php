@@ -77,6 +77,40 @@
 
     <section class="split-grid">
       <article class="panel glass">
+        <h2>Card collection</h2>
+        <p class="muted panel-hint">Purchases, opens, and placements by rank and variant.</p>
+        <div class="table-wrap table-scroll">
+          <table class="data-table">
+            <thead><tr><th>Rank</th><th>Variant</th><th>Bought</th><th>Opened</th><th>Placed</th><th>Total</th></tr></thead>
+            <tbody id="collectionBody"></tbody>
+          </table>
+        </div>
+      </article>
+      <article class="panel glass">
+        <h2>Action summary</h2>
+        <p class="muted panel-hint">Every script action in the selected time range.</p>
+        <div class="table-wrap table-scroll">
+          <table class="data-table">
+            <thead><tr><th>Action</th><th>Count</th></tr></thead>
+            <tbody id="actionSummaryBody"></tbody>
+          </table>
+        </div>
+      </article>
+    </section>
+
+    <section class="panel glass">
+      <h2>UI clicks</h2>
+      <p class="muted panel-hint">Buttons, dropdowns, and inputs you used in the script.</p>
+      <div class="table-wrap table-scroll">
+        <table class="data-table">
+          <thead><tr><th>Tab</th><th>Control</th><th>Type</th><th>Clicks</th></tr></thead>
+          <tbody id="uiClicksBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="split-grid">
+      <article class="panel glass">
         <h2>Players</h2>
         <div class="table-wrap table-scroll">
           <table class="data-table">
@@ -126,6 +160,7 @@
             <option value="script_destroy">script_destroy</option>
             <option value="session_heartbeat">session_heartbeat</option>
             <option value="suggestion">suggestion</option>
+            <option value="ui_click">ui_click</option>
           </select>
         </div>
       </div>
