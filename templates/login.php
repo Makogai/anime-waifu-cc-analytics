@@ -10,16 +10,19 @@
 </head>
 <body class="login-page">
   <div class="login-card glass">
-    <div class="login-badge">✦</div>
+    <div class="login-badge">🌸</div>
     <h1><?= htmlspecialchars(app_config('site_title', 'Analytics')) ?></h1>
-    <p class="muted">Dashboard access</p>
+    <p class="muted">Log in with your Roblox username + script password</p>
+    <p class="muted small">Password is created automatically the first time you enable backend logging in the script.</p>
     <?php if (!empty($GLOBALS['login_error'])): ?>
       <p class="error"><?= htmlspecialchars($GLOBALS['login_error']) ?></p>
     <?php endif; ?>
-    <form method="post">
-      <input type="password" name="dashboard_password" placeholder="Password" autofocus required>
-      <button type="submit">Enter</button>
+    <form method="post" class="login-form">
+      <input type="text" name="username" placeholder="Roblox username" autocomplete="username" autofocus required>
+      <input type="password" name="password" placeholder="Dashboard password" autocomplete="current-password" required>
+      <button type="submit">Sign in</button>
     </form>
+    <p class="muted small admin-hint">Admin: username <code>_admin</code> + admin password from config</p>
   </div>
 </body>
 </html>

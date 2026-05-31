@@ -23,12 +23,21 @@
       </div>
     </div>
     <div class="topbar-actions">
+      <?php
+        dashboard_start_session();
+        $viewer = dashboard_is_admin() ? 'Admin (all players)' : (dashboard_username() ?? 'Guest');
+      ?>
+      <span class="viewer-chip"><?= htmlspecialchars($viewer) ?></span>
+      <a class="btn ghost" href="/logout.php">Logout</a>
       <label class="range-select">
         Range
-        <select id="daysRange">
-          <option value="1">24 hours</option>
-          <option value="7" selected>7 days</option>
-          <option value="30">30 days</option>
+        <select id="timeRange">
+          <option value="10m">Last 10 min</option>
+          <option value="30m">Last 30 min</option>
+          <option value="1h">Last 1 hour</option>
+          <option value="24h">Last 24 hours</option>
+          <option value="7d" selected>Last 7 days</option>
+          <option value="30d">Last 30 days</option>
         </select>
       </label>
       <button type="button" id="refreshBtn" class="btn ghost">Refresh</button>
@@ -38,11 +47,16 @@
   <main class="container">
     <section class="stats-grid" id="statsGrid">
       <article class="stat-card glass"><span class="label">Total events</span><strong id="statEvents">—</strong></article>
-      <article class="stat-card glass accent"><span class="label">Events (24h)</span><strong id="statEvents24">—</strong></article>
-      <article class="stat-card glass pink"><span class="label">Pack buys (24h)</span><strong id="statBuys24">—</strong></article>
+      <article class="stat-card glass accent"><span class="label" id="statEventsPeriodLabel">Events (range)</span><strong id="statEventsPeriod">—</strong></article>
+      <article class="stat-card glass pink"><span class="label" id="statBuysPeriodLabel">Pack buys (range)</span><strong id="statBuysPeriod">—</strong></article>
       <article class="stat-card glass purple"><span class="label">Players</span><strong id="statPlayers">—</strong></article>
       <article class="stat-card glass"><span class="label">Online now</span><strong id="statOnline">—</strong></article>
       <article class="stat-card glass gold"><span class="label">Avg session</span><strong id="statUptime">—</strong></article>
+    </section>
+
+    <section class="panel glass">
+      <h2>Script actions</h2>
+      <canvas id="actionsChart"></canvas>
     </section>
 
     <section class="charts-grid">
@@ -89,10 +103,17 @@
           <select id="filterEvent">
             <option value="">All events</option>
             <option value="pack_purchase">pack_purchase</option>
+            <option value="pack_open">pack_open</option>
+            <option value="pack_placed">pack_placed</option>
+            <option value="reroll">reroll</option>
+            <option value="cash_collect">cash_collect</option>
+            <option value="grade_token_collect">grade_token_collect</option>
+            <option value="server_hop">server_hop</option>
+            <option value="feature_toggle">feature_toggle</option>
             <option value="script_load">script_load</option>
             <option value="script_destroy">script_destroy</option>
-            <option value="feature_toggle">feature_toggle</option>
             <option value="session_heartbeat">session_heartbeat</option>
+            <option value="suggestion">suggestion</option>
           </select>
         </div>
       </div>

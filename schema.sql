@@ -40,6 +40,15 @@ CREATE TABLE IF NOT EXISTS cron_state (
     value TEXT NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS user_accounts (
+    username TEXT PRIMARY KEY COLLATE NOCASE,
+    user_id INTEGER NOT NULL UNIQUE,
+    password_hash TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    last_login TEXT
+);
+
 CREATE INDEX IF NOT EXISTS idx_events_created ON events(created_at);
 CREATE INDEX IF NOT EXISTS idx_events_name ON events(event_name);
 CREATE INDEX IF NOT EXISTS idx_events_username ON events(username);

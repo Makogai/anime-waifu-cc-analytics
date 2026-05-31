@@ -1,28 +1,29 @@
 <?php
 /**
  * Copy to config.php and fill in before deploying to Coolify.
+ * MySQL env vars (optional): DB_DRIVER, MYSQL_HOST, MYSQL_PORT, MYSQL_DATABASE, MYSQL_USER, MYSQL_PASSWORD
  */
 
 return [
-    // Random string — script sends this as header: X-API-Key
-    'api_key' => 'change-me-to-a-long-random-string',
+    'api_key' => getenv('API_KEY') ?: 'change-me-to-a-long-random-string',
+    'admin_password' => getenv('ADMIN_PASSWORD') ?: 'change-me-admin',
+    'dashboard_password' => getenv('DASHBOARD_PASSWORD') ?: '',
 
-    // Dashboard login (leave password empty to disable auth — not recommended)
-    'dashboard_password' => 'change-me',
+    'db_driver' => getenv('DB_DRIVER') ?: 'sqlite',
 
-    // SQLite path (must be writable)
     'database_path' => __DIR__ . '/storage/analytics.sqlite',
 
-    // Discord webhook for cron summaries (global; covers all players)
-    'discord_webhook' => 'https://discord.com/api/webhooks/...',
+    'mysql' => [
+        'host' => getenv('MYSQL_HOST') ?: '127.0.0.1',
+        'port' => (int) (getenv('MYSQL_PORT') ?: 3306),
+        'database' => getenv('MYSQL_DATABASE') ?: 'waifu_analytics',
+        'username' => getenv('MYSQL_USER') ?: 'waifu',
+        'password' => getenv('MYSQL_PASSWORD') ?: 'change-me',
+    ],
 
-    // How often cron should summarize (minutes) — informational label in embed
-    'summary_interval_minutes' => 30,
-
-    // Timezone for dashboard dates
-    'timezone' => 'UTC',
-
-    // Script display name in UI
+    'discord_webhook' => getenv('DISCORD_WEBHOOK') ?: 'https://discord.com/api/webhooks/...',
+    'summary_interval_minutes' => (int) (getenv('SUMMARY_INTERVAL_MINUTES') ?: 30),
+    'timezone' => getenv('TIMEZONE') ?: 'UTC',
     'site_title' => 'Waifu Script Analytics',
     'site_subtitle' => 'Anime Viper · Roblox automation',
 ];

@@ -148,75 +148,126 @@ final class EventService
         }
     }
 
-    public function getOverviewStats(): array
+    private function userScope(?string $scopeUser, string $column = 'username'): array
+    {
+        if ($scopeUser === null || $scopeUser === '') {
+            return ['', []];
+        }
+
+        return [" AND {$column} = :scope_user", [':scope_user' => $scopeUser]];
+    }
+
+    public function getOverviewStats(TimeRange $range, ?string $scopeUser = null): array
     {
         $pdo = $this->db->pdo();
-        $since24h = gmdate('Y-m-d H:i:s', time() - 86400);
-        $since7d = gmdate('Y-m-d H:i:s', time() - 604800);
+        $sql = $this->db->sql();
+        $since = $range->sinceClause($sql);
+        [$userSql, $userParams] = $this->userScope($scopeUser);
+
+        $count = static function (string $extra) use ($pdo, $userSql, $userParams): int {
+            $stmt = $pdo->prepare("SELECT COUNT(*) FROM events WHERE 1=1 {$userSql} {$extra}");
+            $stmt->execute($userParams);
+            return (int) $stmt->fetchColumn();
+        };
+
+        $sessionSql = '';
+        $sessionParams = [];
+        if ($scopeUser) {
+            $sessionSql = ' AND username = :scope_user';
+            $sessionParams = [':scope_user' => $scopeUser];
+        }
+
+        $online = $sql->onlineSince();
+        $stmtSessions = $pdo->prepare(
+            "SELECT COUNT(*) FROM sessions
+             WHERE ended_at IS NULL AND last_heartbeat >= {$online} {$sessionSql}"
+        );
+        $stmtSessions->execute($sessionParams);
+
+        $stmtUptime = $pdo->prepare(
+            "SELECT AVG(uptime_sec) FROM sessions WHERE uptime_sec IS NOT NULL {$sessionSql}"
+        );
+        $stmtUptime->execute($sessionParams);
+
+        $playerCount = $scopeUser ? 1 : (int) $pdo->query('SELECT COUNT(*) FROM players')->fetchColumn();
 
         return [
-            'total_events' => (int) $pdo->query('SELECT COUNT(*) FROM events')->fetchColumn(),
-            'total_players' => (int) $pdo->query('SELECT COUNT(*) FROM players')->fetchColumn(),
-            'events_24h' => (int) $pdo->query("SELECT COUNT(*) FROM events WHERE created_at >= '$since24h'")->fetchColumn(),
-            'purchases_24h' => (int) $pdo->query("SELECT COUNT(*) FROM events WHERE event_name = 'pack_purchase' AND created_at >= '$since24h'")->fetchColumn(),
-            'active_sessions' => (int) $pdo->query(
-                "SELECT COUNT(*) FROM sessions WHERE ended_at IS NULL AND last_heartbeat >= datetime('now', '-10 minutes')"
-            )->fetchColumn(),
-            'avg_uptime_min' => round((float) $pdo->query(
-                'SELECT AVG(uptime_sec) FROM sessions WHERE uptime_sec IS NOT NULL'
-            )->fetchColumn() / 60, 1),
+            'range_key' => $range->key,
+            'range_label' => $range->label,
+            'total_events' => $count(''),
+            'total_players' => $playerCount,
+            'period_events' => $count("AND created_at >= {$since}"),
+            'period_purchases' => $count("AND event_name = 'pack_purchase' AND created_at >= {$since}"),
+            'active_sessions' => (int) $stmtSessions->fetchColumn(),
+            'avg_uptime_min' => round((float) $stmtUptime->fetchColumn() / 60, 1),
         ];
     }
 
-    public function getEventsPerDay(int $days = 7): array
+    public function getEventsOverTime(TimeRange $range, ?string $scopeUser = null): array
     {
         $pdo = $this->db->pdo();
-        $stmt = $pdo->prepare(
-            "SELECT date(created_at) AS day, COUNT(*) AS total
-             FROM events
-             WHERE created_at >= datetime('now', :offset)
-             GROUP BY day ORDER BY day ASC"
-        );
-        $stmt->execute([':offset' => '-' . $days . ' days']);
+        $sql = $this->db->sql();
+        $since = $range->sinceClause($sql);
+        $bucket = $sql->bucket($range->bucketSql);
+        [$userSql, $userParams] = $this->userScope($scopeUser);
+        $query = "SELECT {$bucket} AS bucket, COUNT(*) AS total
+                FROM events
+                WHERE created_at >= {$since} {$userSql}
+                GROUP BY bucket ORDER BY bucket ASC";
+        $stmt = $pdo->prepare($query);
+        $stmt->execute($userParams);
         return $stmt->fetchAll();
     }
 
-    public function getPurchasesByRank(int $days = 7): array
+    public function getPurchasesByRank(TimeRange $range, ?string $scopeUser = null): array
     {
-        $pdo = $this->db->pdo();
-        $stmt = $pdo->query(
-            "SELECT json_extract(props, '$.rank') AS rank, COUNT(*) AS total
-             FROM events
-             WHERE event_name = 'pack_purchase'
-               AND created_at >= datetime('now', '-$days days')
-               AND json_extract(props, '$.rank') IS NOT NULL
-             GROUP BY rank ORDER BY total DESC LIMIT 12"
-        );
-        return $stmt->fetchAll();
-    }
-
-    public function getPurchasesByVariant(int $days = 7): array
-    {
-        $pdo = $this->db->pdo();
-        $stmt = $pdo->query(
-            "SELECT json_extract(props, '$.variant') AS variant, COUNT(*) AS total
+        $sql = $this->db->sql();
+        $since = $range->sinceClause($sql);
+        [$userSql, $userParams] = $this->userScope($scopeUser);
+        $rank = $sql->jsonExtract('props', '$.rank');
+        $query = "SELECT {$rank} AS rank, COUNT(*) AS total
              FROM events
              WHERE event_name = 'pack_purchase'
-               AND created_at >= datetime('now', '-$days days')
-               AND json_extract(props, '$.variant') IS NOT NULL
-             GROUP BY variant ORDER BY total DESC"
-        );
+               AND created_at >= {$since}
+               AND {$rank} IS NOT NULL {$userSql}
+             GROUP BY rank ORDER BY total DESC LIMIT 12";
+        $stmt = $this->db->pdo()->prepare($query);
+        $stmt->execute($userParams);
         return $stmt->fetchAll();
     }
 
-    public function getRecentEvents(int $limit = 50, ?string $username = null, ?string $eventName = null): array
+    public function getPurchasesByVariant(TimeRange $range, ?string $scopeUser = null): array
     {
+        $sql = $this->db->sql();
+        $since = $range->sinceClause($sql);
+        [$userSql, $userParams] = $this->userScope($scopeUser);
+        $variant = $sql->jsonExtract('props', '$.variant');
+        $query = "SELECT {$variant} AS variant, COUNT(*) AS total
+             FROM events
+             WHERE event_name = 'pack_purchase'
+               AND created_at >= {$since}
+               AND {$variant} IS NOT NULL {$userSql}
+             GROUP BY variant ORDER BY total DESC";
+        $stmt = $this->db->pdo()->prepare($query);
+        $stmt->execute($userParams);
+        return $stmt->fetchAll();
+    }
+
+    public function getRecentEvents(
+        TimeRange $range,
+        int $limit = 50,
+        ?string $username = null,
+        ?string $eventName = null,
+        ?string $scopeUser = null
+    ): array {
         $pdo = $this->db->pdo();
-        $sql = 'SELECT * FROM events WHERE 1=1';
+        $since = $range->sinceClause($this->db->sql());
+        $sql = "SELECT * FROM events WHERE created_at >= $since";
         $params = [];
-        if ($username) {
+        $filterUser = $scopeUser ?? $username;
+        if ($filterUser) {
             $sql .= ' AND username = :u';
-            $params[':u'] = $username;
+            $params[':u'] = $filterUser;
         }
         if ($eventName) {
             $sql .= ' AND event_name = :e';
@@ -228,23 +279,56 @@ final class EventService
         return $stmt->fetchAll();
     }
 
-    public function getPlayers(): array
+    public function getPlayers(?string $scopeUser = null): array
     {
+        $online = $this->db->sql()->onlineSince();
+        if ($scopeUser) {
+            $stmt = $this->db->pdo()->prepare(
+                "SELECT p.*,
+                    (SELECT COUNT(*) FROM sessions s WHERE s.username = p.username AND s.ended_at IS NULL
+                        AND s.last_heartbeat >= {$online}) AS online
+                 FROM players p WHERE p.username = :u LIMIT 1"
+            );
+            $stmt->execute([':u' => $scopeUser]);
+            return $stmt->fetchAll();
+        }
+
         return $this->db->pdo()->query(
-            'SELECT p.*,
+            "SELECT p.*,
                 (SELECT COUNT(*) FROM sessions s WHERE s.username = p.username AND s.ended_at IS NULL
-                    AND s.last_heartbeat >= datetime(\'now\', \'-10 minutes\')) AS online
-             FROM players p ORDER BY p.last_seen DESC LIMIT 100'
+                    AND s.last_heartbeat >= {$online}) AS online
+             FROM players p ORDER BY p.last_seen DESC LIMIT 100"
         )->fetchAll();
     }
 
-    public function getSessions(int $limit = 30): array
+    public function getSessions(TimeRange $range, int $limit = 30, ?string $scopeUser = null): array
     {
-        $stmt = $this->db->pdo()->prepare(
-            'SELECT * FROM sessions ORDER BY COALESCE(ended_at, last_heartbeat, started_at) DESC LIMIT :lim'
-        );
+        $since = $range->sinceClause($this->db->sql());
+        [$userSql, $userParams] = $this->userScope($scopeUser, 'username');
+        $sql = "SELECT * FROM sessions
+             WHERE COALESCE(started_at, last_heartbeat) >= $since {$userSql}
+             ORDER BY COALESCE(ended_at, last_heartbeat, started_at) DESC
+             LIMIT :lim";
+        $stmt = $this->db->pdo()->prepare($sql);
+        foreach ($userParams as $k => $v) {
+            $stmt->bindValue($k, $v);
+        }
         $stmt->bindValue(':lim', $limit, PDO::PARAM_INT);
         $stmt->execute();
+        return $stmt->fetchAll();
+    }
+
+    public function getActionCounts(TimeRange $range, ?string $scopeUser = null): array
+    {
+        $since = $range->sinceClause($this->db->sql());
+        [$userSql, $userParams] = $this->userScope($scopeUser);
+        $sql = "SELECT event_name, COUNT(*) AS total
+             FROM events
+             WHERE created_at >= $since {$userSql}
+             GROUP BY event_name
+             ORDER BY total DESC";
+        $stmt = $this->db->pdo()->prepare($sql);
+        $stmt->execute($userParams);
         return $stmt->fetchAll();
     }
 
@@ -269,23 +353,27 @@ final class EventService
 
     public function setCronState(string $key, string $value): void
     {
-        $this->db->pdo()->prepare(
-            'INSERT INTO cron_state (key, value) VALUES (:k, :v)
-             ON CONFLICT(key) DO UPDATE SET value = excluded.value'
-        )->execute([':k' => $key, ':v' => $value]);
+        $this->db->pdo()->prepare($this->db->sql()->upsertCronState())
+            ->execute([':k' => $key, ':v' => $value]);
     }
 
-    public function getFeatureToggles(int $days = 7): array
+    public function getFeatureToggles(TimeRange $range, ?string $scopeUser = null): array
     {
-        return $this->db->pdo()->query(
-            "SELECT json_extract(props, '$.feature') AS feature,
-                    json_extract(props, '$.enabled') AS enabled,
+        $sql = $this->db->sql();
+        $since = $range->sinceClause($sql);
+        [$userSql, $userParams] = $this->userScope($scopeUser);
+        $feature = $sql->jsonExtract('props', '$.feature');
+        $enabled = $sql->jsonExtract('props', '$.enabled');
+        $query = "SELECT {$feature} AS feature,
+                    {$enabled} AS enabled,
                     COUNT(*) AS total
              FROM events
              WHERE event_name = 'feature_toggle'
-               AND created_at >= datetime('now', '-$days days')
+               AND created_at >= {$since} {$userSql}
              GROUP BY feature, enabled
-             ORDER BY total DESC LIMIT 20"
-        )->fetchAll();
+             ORDER BY total DESC LIMIT 20";
+        $stmt = $this->db->pdo()->prepare($query);
+        $stmt->execute($userParams);
+        return $stmt->fetchAll();
     }
 }

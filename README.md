@@ -1,83 +1,104 @@
 # Waifu Analytics Dashboard
 
-PHP + SQLite analytics for the Roblox script. Host on **Coolify** with document root `public/`.
+PHP analytics for the Roblox script. Host on **Coolify** with document root `public/`.
 
-## Quick setup (Coolify)
+## SQLite vs MySQL — which to use?
 
-1. Create a new **Application** → use the included **Dockerfile** (root: `dashboard/`).
-2. Copy `config.example.php` → `config.php` and set:
-   - `api_key` — long random string (same as in script)
-   - `dashboard_password` — for web UI login
-   - `discord_webhook` — for cron summaries
-3. Mount a **persistent volume** on `storage/` (SQLite database).
-4. Add **Scheduled Task** (cron):
-   ```bash
-   php /var/www/html/cron/discord_summary.php
-   ```
-   Every **30 minutes** (match `summary_interval_minutes` in config).
+| | **SQLite + volume** | **MySQL (recommended on Coolify)** |
+|--|---------------------|-------------------------------------|
+| Setup | Easiest locally | One MySQL service in Coolify |
+| Persistence | You must add a volume mount | Automatic (DB is separate) |
+| Backups | Copy one `.sqlite` file | Coolify / mysqldump |
+| Best for | Local dev, single tiny deploy | Production, Coolify, many events |
 
-## API
+**Recommendation:** use **MySQL on Coolify** if you are deploying there. Use **SQLite** for `php -S localhost:8080` on your PC.
 
-**POST** `https://your-domain.com/api.php`
+---
 
-Headers:
-- `Content-Type: application/json`
-- `X-API-Key: your-api-key`
+## Option A — MySQL on Coolify (recommended)
 
-Body:
-```json
-{
-  "event_name": "pack_purchase",
-  "username": "PlayerName",
-  "user_id": 123456,
-  "place_id": 123,
-  "job_id": "uuid",
-  "session_id": "1700000000_123456",
-  "script_version": "1.5",
-  "props": {
-    "rank": "Beyond",
-    "variant": "Solaris",
-    "slot": 2,
-    "price": "1.2M"
-  }
-}
+### 1. Create MySQL in Coolify
+
+1. **+ Add** → **Database** → **MySQL** (8.x).
+2. Set database name e.g. `waifu_analytics`, user + password.
+3. Deploy the database.
+
+### 2. Deploy the dashboard app
+
+1. **+ Add** → **Application** → your repo, **Base Directory** = `dashboard/`.
+2. Build: **Dockerfile** (included).
+3. **Environment variables** (or link MySQL service — Coolify fills these):
+
+```env
+DB_DRIVER=mysql
+MYSQL_HOST=<mysql service internal hostname>
+MYSQL_PORT=3306
+MYSQL_DATABASE=waifu_analytics
+MYSQL_USER=waifu
+MYSQL_PASSWORD=<your password>
 ```
 
-Batch:
-```json
-{
-  "events": [ { "event_name": "..." }, { "event_name": "..." } ]
-}
+### 3. `config.php` on the server
+
+Either bake `config.php` in the image, mount it, or use env — simplest is edit `config.php`:
+
+```php
+'db_driver' => getenv('DB_DRIVER') ?: 'mysql',
+'mysql' => [
+    'host' => getenv('MYSQL_HOST') ?: '127.0.0.1',
+    'port' => (int) (getenv('MYSQL_PORT') ?: 3306),
+    'database' => getenv('MYSQL_DATABASE') ?: 'waifu_analytics',
+    'username' => getenv('MYSQL_USER') ?: 'waifu',
+    'password' => getenv('MYSQL_PASSWORD') ?: '',
+],
 ```
 
-## Script wiring
+Tables are created automatically on first request (`schema.mysql.sql`).
 
-Enable in the script **Analytics** tab, or set at top of `otherscript.lua`:
+### 4. Cron (Discord summaries)
 
-```lua
-SaveFile.BackendUrl = "https://analytics.yourdomain.com"
-SaveFile.BackendApiKey = "same-as-config-api_key"
-SaveFile.BackendEnabled = true
+Scheduled Task every 30 min:
+
+```bash
+php /var/www/html/cron/discord_summary.php
 ```
 
-Events logged automatically:
-- `script_load` / `script_destroy` (session + uptime)
-- `session_heartbeat` every 5 minutes
-- `pack_purchase` on auto-buy
+---
 
-Discord summaries are sent by **server cron** — not the in-game 30 min buffer.
+## Option B — SQLite + volume mount on Coolify
 
-## Dashboard
+Without a volume, **every redeploy wipes your analytics**.
 
-Open `https://your-domain.com/` — login with `dashboard_password`.
+### Steps
 
-- Activity charts (7/30 days)
-- Purchases by rank / variant
-- Player list + online status
-- Session duration
-- Live event feed
+1. Deploy app (Dockerfile, base dir `dashboard/`).
+2. Open your application → **Storages** (or **Persistent Storage** / **Volumes**).
+3. **Add Volume**:
+   - **Container path:** `/var/www/html/storage`
+   - **Name:** e.g. `waifu-analytics-data`
+4. Redeploy.
 
-## Local test
+In `config.php`:
+
+```php
+'db_driver' => 'sqlite',
+'database_path' => __DIR__ . '/storage/analytics.sqlite',
+```
+
+### docker-compose (local / VPS)
+
+Already configured:
+
+```yaml
+volumes:
+  - waifu_data:/var/www/html/storage
+```
+
+Run: `docker compose up -d` from `dashboard/`.
+
+---
+
+## Quick local test (SQLite)
 
 ```bash
 cd dashboard
@@ -85,7 +106,29 @@ cp config.example.php config.php
 php -S localhost:8080 -t public
 ```
 
-Cron manually:
-```bash
-php cron/discord_summary.php
-```
+---
+
+## API
+
+**POST** `https://your-domain.com/api.php`
+
+Headers: `Content-Type: application/json`, `X-API-Key: your-key`
+
+See previous sections in this file for payload examples.
+
+---
+
+## Dashboard login
+
+- **Players:** Roblox username + password from script (`Analytics` tab → Show dashboard login).
+- **Admin:** username `_admin` + `admin_password` in config (sees all players).
+
+---
+
+## Script wiring
+
+Analytics tab → Backend URL + API key → Enable backend logging.
+
+Events: purchases, rerolls, cash collect, tokens, pack open/place, server hop, toggles, sessions.
+
+Discord summaries: server cron, not in-game buffer.

@@ -15,7 +15,7 @@
   function fmtProps(props) {
     if (!props || typeof props !== "object") return "";
     const parts = [];
-    ["rank", "variant", "slot", "feature", "enabled", "price", "uptime_sec"].forEach(function (k) {
+    ["rank", "variant", "slot", "feature", "enabled", "price", "uptime_sec", "difficulty", "mode", "pack_id", "tool", "content"].forEach(function (k) {
       if (props[k] !== undefined && props[k] !== null) parts.push(k + ": " + props[k]);
     });
     if (!parts.length) return JSON.stringify(props).slice(0, 80);
@@ -30,16 +30,16 @@
   }
 
   function renderCharts(data) {
-    const days = document.getElementById("daysRange").value;
+    const series = data.events_over_time || data.events_per_day || [];
 
     destroyChart("activity");
     charts.activity = new Chart(document.getElementById("activityChart"), {
       type: "line",
       data: {
-        labels: (data.events_per_day || []).map(function (r) { return r.day; }),
+        labels: series.map(function (r) { return r.bucket || r.day; }),
         datasets: [{
           label: "Events",
-          data: (data.events_per_day || []).map(function (r) { return r.total; }),
+          data: series.map(function (r) { return r.total; }),
           borderColor: "#ff6bd6",
           backgroundColor: "rgba(255,107,214,0.12)",
           fill: true,
@@ -52,6 +52,32 @@
         scales: {
           x: { ticks: { color: "#a894c9" }, grid: { color: "rgba(255,255,255,0.05)" } },
           y: { ticks: { color: "#a894c9" }, grid: { color: "rgba(255,255,255,0.05)" } },
+        },
+      },
+    });
+
+    destroyChart("actions");
+    const actions = (data.action_counts || []).filter(function (r) {
+      return !["session_heartbeat", "ping"].includes(r.event_name);
+    });
+    charts.actions = new Chart(document.getElementById("actionsChart"), {
+      type: "bar",
+      data: {
+        labels: actions.map(function (r) { return r.event_name; }),
+        datasets: [{
+          label: "Count",
+          data: actions.map(function (r) { return r.total; }),
+          backgroundColor: palette,
+          borderRadius: 8,
+        }],
+      },
+      options: {
+        indexAxis: "y",
+        responsive: true,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { ticks: { color: "#a894c9" }, grid: { color: "rgba(255,255,255,0.05)" } },
+          y: { ticks: { color: "#a894c9", font: { size: 11 } }, grid: { display: false } },
         },
       },
     });
@@ -100,9 +126,20 @@
 
   function renderTables(data) {
     const o = data.overview || {};
+    const viewer = data.viewer || {};
+    const rangeLabel = (data.range && data.range.label) || o.range_label || "range";
+    const periodSuffix = rangeLabel.replace(/^Last /i, "");
+
+    const filterUser = document.getElementById("filterUser");
+    if (filterUser) {
+      filterUser.closest(".filters").style.display = viewer.admin ? "" : "none";
+    }
+
     document.getElementById("statEvents").textContent = o.total_events ?? "—";
-    document.getElementById("statEvents24").textContent = o.events_24h ?? "—";
-    document.getElementById("statBuys24").textContent = o.purchases_24h ?? "—";
+    document.getElementById("statEventsPeriod").textContent = o.period_events ?? o.events_24h ?? "—";
+    document.getElementById("statBuysPeriod").textContent = o.period_purchases ?? o.purchases_24h ?? "—";
+    document.getElementById("statEventsPeriodLabel").textContent = "Events (" + periodSuffix + ")";
+    document.getElementById("statBuysPeriodLabel").textContent = "Pack buys (" + periodSuffix + ")";
     document.getElementById("statPlayers").textContent = o.total_players ?? "—";
     document.getElementById("statOnline").textContent = o.active_sessions ?? "—";
     document.getElementById("statUptime").textContent = (o.avg_uptime_min ?? "—") + (o.avg_uptime_min != null ? " min" : "");
@@ -131,10 +168,10 @@
   }
 
   async function load() {
-    const days = document.getElementById("daysRange").value;
+    const range = document.getElementById("timeRange").value;
     const user = document.getElementById("filterUser").value.trim();
     const event = document.getElementById("filterEvent").value;
-    let url = "/data.php?days=" + encodeURIComponent(days);
+    let url = "/data.php?range=" + encodeURIComponent(range);
     if (user) url += "&username=" + encodeURIComponent(user);
     if (event) url += "&event=" + encodeURIComponent(event);
     const res = await fetch(url);
@@ -144,7 +181,7 @@
   }
 
   document.getElementById("refreshBtn").addEventListener("click", load);
-  document.getElementById("daysRange").addEventListener("change", load);
+  document.getElementById("timeRange").addEventListener("change", load);
   document.getElementById("filterUser").addEventListener("input", debounce(load, 400));
   document.getElementById("filterEvent").addEventListener("change", load);
 
@@ -157,5 +194,5 @@
   }
 
   load();
-  setInterval(load, 60000);
+  setInterval(load, 30000);
 })();
