@@ -22,29 +22,25 @@
         <p><?= htmlspecialchars(app_config('site_subtitle', '')) ?></p>
       </div>
     </div>
-    <div class="topbar-toolbar">
-      <div class="topbar-meta">
-        <?php
-          dashboard_start_session();
-          $viewer = dashboard_is_admin() ? 'Admin' : (dashboard_username() ?? 'Guest');
-        ?>
-        <span class="viewer-chip" title="<?= htmlspecialchars($viewer) ?>"><?= htmlspecialchars($viewer) ?></span>
-        <a class="btn ghost btn-sm" href="/logout.php">Logout</a>
-      </div>
-      <div class="topbar-controls">
-        <label class="range-select">
-          <span class="range-label">Range</span>
-          <select id="timeRange">
-            <option value="10m">Last 10 min</option>
-            <option value="30m">Last 30 min</option>
-            <option value="1h">Last 1 hour</option>
-            <option value="24h" selected>Last 24 hours</option>
-            <option value="7d">Last 7 days</option>
-            <option value="30d">Last 30 days</option>
-          </select>
-        </label>
-        <button type="button" id="refreshBtn" class="btn ghost btn-sm">Refresh</button>
-      </div>
+    <div class="topbar-actions">
+      <?php
+        dashboard_start_session();
+        $viewer = dashboard_is_admin() ? 'Admin · all players' : (dashboard_username() ?? 'Guest');
+      ?>
+      <span class="viewer-chip" title="<?= htmlspecialchars($viewer) ?>"><?= htmlspecialchars($viewer) ?></span>
+      <label class="range-select">
+        <span class="range-label">Range</span>
+        <select id="timeRange">
+          <option value="10m">Last 10 min</option>
+          <option value="30m">Last 30 min</option>
+          <option value="1h">Last 1 hour</option>
+          <option value="24h" selected>Last 24 hours</option>
+          <option value="7d">Last 7 days</option>
+          <option value="30d">Last 30 days</option>
+        </select>
+      </label>
+      <button type="button" id="refreshBtn" class="btn ghost">Refresh</button>
+      <a class="btn ghost" href="/logout.php">Logout</a>
     </div>
   </header>
 
