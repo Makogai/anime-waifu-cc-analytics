@@ -226,13 +226,13 @@ final class EventService
         $sql = $this->db->sql();
         $since = $range->sinceClause($sql);
         [$userSql, $userParams] = $this->userScope($scopeUser);
-        $rank = $sql->jsonExtract('props', '$.rank');
-        $query = "SELECT {$rank} AS rank, COUNT(*) AS total
+        $rankExpr = $sql->jsonExtract('props', '$.rank');
+        $query = "SELECT {$rankExpr} AS pack_rank, COUNT(*) AS total
              FROM events
              WHERE event_name = 'pack_purchase'
                AND created_at >= {$since}
-               AND {$rank} IS NOT NULL {$userSql}
-             GROUP BY rank ORDER BY total DESC LIMIT 12";
+               AND {$rankExpr} IS NOT NULL {$userSql}
+             GROUP BY pack_rank ORDER BY total DESC LIMIT 12";
         $stmt = $this->db->pdo()->prepare($query);
         $stmt->execute($userParams);
         return $stmt->fetchAll();

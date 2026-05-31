@@ -103,7 +103,7 @@
     charts.rank = new Chart(document.getElementById("rankChart"), {
       type: "bar",
       data: {
-        labels: ranks.map(function (r) { return r.rank; }),
+        labels: ranks.map(function (r) { return r.pack_rank || r.rank; }),
         datasets: [{
           label: "Buys",
           data: ranks.map(function (r) { return r.total; }),
