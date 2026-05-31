@@ -25,9 +25,11 @@ PHP analytics for the Roblox script. Host on **Coolify** with document root `pub
 
 ### 2. Deploy the dashboard app
 
-1. **+ Add** → **Application** → your repo, **Base Directory** = `dashboard/`.
-2. Build: **Dockerfile** (included).
-3. **Environment variables** (or link MySQL service — Coolify fills these):
+1. **+ Add** → **Application** → your repo.
+2. **Base Directory:** leave **empty** if this repo *is* the dashboard folder (you ran `git init` inside `dashboard/`). Use `dashboard/` only when deploying from the parent monorepo.
+3. Build: **Dockerfile** (included).
+4. **Ports Exposes:** **80** (required — default 3000 causes **502 Bad Gateway**).
+5. **Environment variables** (or link MySQL service — Coolify fills these):
 
 ```env
 DB_DRIVER=mysql
@@ -38,24 +40,18 @@ MYSQL_USER=waifu
 MYSQL_PASSWORD=<your password>
 ```
 
-### 3. `config.php` on the server
+### 3. Config
 
-Either bake `config.php` in the image, mount it, or use env — simplest is edit `config.php`:
-
-```php
-'db_driver' => getenv('DB_DRIVER') ?: 'mysql',
-'mysql' => [
-    'host' => getenv('MYSQL_HOST') ?: '127.0.0.1',
-    'port' => (int) (getenv('MYSQL_PORT') ?: 3306),
-    'database' => getenv('MYSQL_DATABASE') ?: 'waifu_analytics',
-    'username' => getenv('MYSQL_USER') ?: 'waifu',
-    'password' => getenv('MYSQL_PASSWORD') ?: '',
-],
-```
+`config.php` is optional in Git — the container copies `config.example.php` on startup if missing. All secrets can come from **environment variables** (see `config.example.php`).
 
 Tables are created automatically on first request (`schema.mysql.sql`).
 
-### 4. Cron (Discord summaries)
+### 4. Verify deploy
+
+1. Open `https://your-domain/health.php` — should print `ok`.
+2. Open `/` — login page (admin: username `_admin`, password from `ADMIN_PASSWORD`).
+
+### 5. Cron (Discord summaries)
 
 Scheduled Task every 30 min:
 
@@ -71,7 +67,7 @@ Without a volume, **every redeploy wipes your analytics**.
 
 ### Steps
 
-1. Deploy app (Dockerfile, base dir `dashboard/`).
+1. Deploy app (Dockerfile). Base Directory empty if repo root is this folder.
 2. Open your application → **Storages** (or **Persistent Storage** / **Volumes**).
 3. **Add Volume**:
    - **Container path:** `/var/www/html/storage`
@@ -132,3 +128,19 @@ Analytics tab → Backend URL + API key → Enable backend logging.
 Events: purchases, rerolls, cash collect, tokens, pack open/place, server hop, toggles, sessions.
 
 Discord summaries: server cron, not in-game buffer.
+
+---
+
+## Troubleshooting 502 Bad Gateway
+
+A **502** means Coolify’s proxy cannot reach your container — the deploy can still show “success.”
+
+| Check | Fix |
+|-------|-----|
+| **Port** | **Ports Exposes** = `80` (not 3000) |
+| **Base Directory** | Empty if you pushed from inside `dashboard/` |
+| **Health** | Visit `/health.php` — `ok` = Apache is up |
+| **Logs** | Coolify → your app → **Logs** — look for Apache/PHP errors |
+| **MySQL** | Set `DB_DRIVER=mysql` + linked MySQL env vars; wrong host causes 500 on pages, not usually 502 |
+
+After changing port or Dockerfile, **redeploy** (rebuild if Dockerfile changed).

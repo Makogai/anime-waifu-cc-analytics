@@ -161,6 +161,15 @@
       const props = e.props || {};
       return "<tr><td>" + escapeHtml(e.created_at) + "</td><td class=\"event-name\">" + escapeHtml(e.event_name) + "</td><td>" + escapeHtml(e.username || "—") + "</td><td class=\"props-preview\" title=\"" + escapeHtml(JSON.stringify(props)) + "\">" + escapeHtml(fmtProps(props)) + "</td></tr>";
     }).join("") || "<tr><td colspan=\"4\">No events yet — run the script with backend enabled</td></tr>";
+
+    const suggestionsBody = document.getElementById("suggestionsBody");
+    if (suggestionsBody) {
+      suggestionsBody.innerHTML = (data.suggestions || []).map(function (e) {
+        const props = e.props || {};
+        const text = props.content != null ? String(props.content) : fmtProps(props);
+        return "<tr><td>" + escapeHtml(e.created_at) + "</td><td>" + escapeHtml(e.username || "—") + "</td><td class=\"suggestion-text\">" + escapeHtml(text) + "</td></tr>";
+      }).join("") || "<tr><td colspan=\"3\">No suggestions yet</td></tr>";
+    }
   }
 
   function escapeHtml(s) {

@@ -38,4 +38,8 @@ json_response([
         $row['props'] = json_decode($row['props'] ?? '{}', true);
         return $row;
     }, $svc->getRecentEvents($range, 80, $filterUser, $_GET['event'] ?? null, $scope)),
+    'suggestions' => array_map(static function (array $row): array {
+        $row['props'] = json_decode($row['props'] ?? '{}', true);
+        return $row;
+    }, $svc->getRecentEvents($range, 50, $filterUser, 'suggestion', $scope)),
 ]);

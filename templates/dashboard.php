@@ -96,6 +96,17 @@
     </section>
 
     <section class="panel glass">
+      <h2>Suggestions</h2>
+      <p class="muted panel-hint">Ideas submitted from the script Credits tab (requires backend logging).</p>
+      <div class="table-wrap tall">
+        <table>
+          <thead><tr><th>Time (UTC)</th><th>Player</th><th>Idea</th></tr></thead>
+          <tbody id="suggestionsBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="panel glass">
       <div class="panel-head">
         <h2>Live event feed</h2>
         <div class="filters">
