@@ -1,0 +1,6 @@
+storage/*.sqlite
+storage/*.sqlite-*
+.git
+.gitignore
+README.md
+docker-compose.yml
