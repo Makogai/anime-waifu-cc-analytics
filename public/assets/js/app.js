@@ -147,8 +147,12 @@
     const periodSuffix = rangeLabel.replace(/^Last /i, "");
 
     const filterUser = document.getElementById("filterUser");
+    const filterEvent = document.getElementById("filterEvent");
     if (filterUser) {
       filterUser.closest(".filters").style.display = viewer.admin ? "" : "none";
+    }
+    if (filterEvent) {
+      filterEvent.style.width = viewer.admin ? "" : "100%";
     }
 
     document.getElementById("statEvents").textContent = o.total_events ?? "—";
@@ -163,19 +167,20 @@
     const playersBody = document.getElementById("playersBody");
     playersBody.innerHTML = (data.players || []).map(function (p) {
       const online = Number(p.online) > 0;
-      return "<tr><td><strong>" + escapeHtml(p.username) + "</strong></td><td>" + escapeHtml(p.last_seen) + "</td><td>" + p.total_sessions + "</td><td>" + p.total_events + "</td><td><span class=\"badge " + (online ? "online" : "offline") + "\">" + (online ? "online" : "offline") + "</span></td></tr>";
+      const status = "<span class=\"badge " + (online ? "online" : "offline") + "\">" + (online ? "online" : "offline") + "</span>";
+      return "<tr><td data-label=\"Player\"><strong>" + escapeHtml(p.username) + "</strong></td><td data-label=\"Last seen\">" + escapeHtml(p.last_seen) + "</td><td data-label=\"Sessions\">" + p.total_sessions + "</td><td data-label=\"Events\">" + p.total_events + "</td><td data-label=\"Status\">" + status + "</td></tr>";
     }).join("") || "<tr><td colspan=\"5\">No players yet</td></tr>";
 
     const sessionsBody = document.getElementById("sessionsBody");
     sessionsBody.innerHTML = (data.sessions || []).map(function (s) {
       const dur = s.uptime_sec != null ? fmtDuration(s.uptime_sec) : (s.ended_at ? "ended" : "active");
-      return "<tr><td>" + escapeHtml(s.username) + "</td><td>" + escapeHtml(s.started_at) + "</td><td>" + dur + "</td><td>" + escapeHtml(s.script_version || "—") + "</td></tr>";
+      return "<tr><td data-label=\"Player\">" + escapeHtml(s.username) + "</td><td data-label=\"Started\">" + escapeHtml(s.started_at) + "</td><td data-label=\"Duration\">" + dur + "</td><td data-label=\"Version\">" + escapeHtml(s.script_version || "—") + "</td></tr>";
     }).join("") || "<tr><td colspan=\"4\">No sessions yet</td></tr>";
 
     const eventsBody = document.getElementById("eventsBody");
     eventsBody.innerHTML = (data.recent_events || []).map(function (e) {
       const props = e.props || {};
-      return "<tr><td>" + escapeHtml(e.created_at) + "</td><td class=\"event-name\">" + escapeHtml(e.event_name) + "</td><td>" + escapeHtml(e.username || "—") + "</td><td class=\"props-preview\" title=\"" + escapeHtml(JSON.stringify(props)) + "\">" + escapeHtml(fmtProps(props)) + "</td></tr>";
+      return "<tr><td data-label=\"Time\">" + escapeHtml(e.created_at) + "</td><td data-label=\"Event\" class=\"event-name\">" + escapeHtml(e.event_name) + "</td><td data-label=\"Player\">" + escapeHtml(e.username || "—") + "</td><td data-label=\"Details\" class=\"props-preview\" title=\"" + escapeHtml(JSON.stringify(props)) + "\">" + escapeHtml(fmtProps(props)) + "</td></tr>";
     }).join("") || "<tr><td colspan=\"4\">No events yet — run the script with backend enabled</td></tr>";
 
     const suggestionsBody = document.getElementById("suggestionsBody");
@@ -183,7 +188,7 @@
       suggestionsBody.innerHTML = (data.suggestions || []).map(function (e) {
         const props = e.props || {};
         const text = props.content != null ? String(props.content) : fmtProps(props);
-        return "<tr><td>" + escapeHtml(e.created_at) + "</td><td>" + escapeHtml(e.username || "—") + "</td><td class=\"suggestion-text\">" + escapeHtml(text) + "</td></tr>";
+        return "<tr><td data-label=\"Time\">" + escapeHtml(e.created_at) + "</td><td data-label=\"Player\">" + escapeHtml(e.username || "—") + "</td><td data-label=\"Idea\" class=\"suggestion-text\">" + escapeHtml(text) + "</td></tr>";
       }).join("") || "<tr><td colspan=\"3\">No suggestions yet</td></tr>";
     }
   }

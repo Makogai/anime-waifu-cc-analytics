@@ -16,31 +16,35 @@
 
   <header class="topbar glass">
     <div class="brand">
-      <span class="brand-icon">🌸</span>
-      <div>
+      <span class="brand-icon" aria-hidden="true">🌸</span>
+      <div class="brand-text">
         <h1><?= htmlspecialchars(app_config('site_title', 'Analytics')) ?></h1>
         <p><?= htmlspecialchars(app_config('site_subtitle', '')) ?></p>
       </div>
     </div>
-    <div class="topbar-actions">
-      <?php
-        dashboard_start_session();
-        $viewer = dashboard_is_admin() ? 'Admin (all players)' : (dashboard_username() ?? 'Guest');
-      ?>
-      <span class="viewer-chip"><?= htmlspecialchars($viewer) ?></span>
-      <a class="btn ghost" href="/logout.php">Logout</a>
-      <label class="range-select">
-        Range
-        <select id="timeRange">
-          <option value="10m">Last 10 min</option>
-          <option value="30m">Last 30 min</option>
-          <option value="1h">Last 1 hour</option>
-          <option value="24h" selected>Last 24 hours</option>
-          <option value="7d">Last 7 days</option>
-          <option value="30d">Last 30 days</option>
-        </select>
-      </label>
-      <button type="button" id="refreshBtn" class="btn ghost">Refresh</button>
+    <div class="topbar-toolbar">
+      <div class="topbar-meta">
+        <?php
+          dashboard_start_session();
+          $viewer = dashboard_is_admin() ? 'Admin' : (dashboard_username() ?? 'Guest');
+        ?>
+        <span class="viewer-chip" title="<?= htmlspecialchars($viewer) ?>"><?= htmlspecialchars($viewer) ?></span>
+        <a class="btn ghost btn-sm" href="/logout.php">Logout</a>
+      </div>
+      <div class="topbar-controls">
+        <label class="range-select">
+          <span class="range-label">Range</span>
+          <select id="timeRange">
+            <option value="10m">Last 10 min</option>
+            <option value="30m">Last 30 min</option>
+            <option value="1h">Last 1 hour</option>
+            <option value="24h" selected>Last 24 hours</option>
+            <option value="7d">Last 7 days</option>
+            <option value="30d">Last 30 days</option>
+          </select>
+        </label>
+        <button type="button" id="refreshBtn" class="btn ghost btn-sm">Refresh</button>
+      </div>
     </div>
   </header>
 
@@ -78,17 +82,17 @@
     <section class="split-grid">
       <article class="panel glass">
         <h2>Players</h2>
-        <div class="table-wrap">
-          <table>
-            <thead><tr><th>Player</th><th>Last seen</th><th>Sessions</th><th>Events</th><th></th></tr></thead>
+        <div class="table-wrap table-scroll">
+          <table class="data-table">
+            <thead><tr><th>Player</th><th>Last seen</th><th>Sessions</th><th>Events</th><th>Status</th></tr></thead>
             <tbody id="playersBody"></tbody>
           </table>
         </div>
       </article>
       <article class="panel glass">
         <h2>Recent sessions</h2>
-        <div class="table-wrap">
-          <table>
+        <div class="table-wrap table-scroll">
+          <table class="data-table">
             <thead><tr><th>Player</th><th>Started</th><th>Duration</th><th>Version</th></tr></thead>
             <tbody id="sessionsBody"></tbody>
           </table>
@@ -99,8 +103,8 @@
     <section class="panel glass">
       <h2>Suggestions</h2>
       <p class="muted panel-hint">Ideas submitted from the script Credits tab (requires backend logging).</p>
-      <div class="table-wrap tall">
-        <table>
+      <div class="table-wrap tall table-scroll">
+        <table class="data-table">
           <thead><tr><th>Time (UTC)</th><th>Player</th><th>Idea</th></tr></thead>
           <tbody id="suggestionsBody"></tbody>
         </table>
@@ -129,8 +133,8 @@
           </select>
         </div>
       </div>
-      <div class="table-wrap tall">
-        <table>
+      <div class="table-wrap tall table-scroll">
+        <table class="data-table">
           <thead><tr><th>Time (UTC)</th><th>Event</th><th>Player</th><th>Details</th></tr></thead>
           <tbody id="eventsBody"></tbody>
         </table>
