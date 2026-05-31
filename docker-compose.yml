@@ -1,0 +1,11 @@
+services:
+  waifu-analytics:
+    build: .
+    ports:
+      - "8080:80"
+    volumes:
+      - waifu_data:/var/www/html/storage
+    restart: unless-stopped
+
+volumes:
+  waifu_data:

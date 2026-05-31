@@ -1,0 +1,152 @@
+:root {
+  --bg: #0a0612;
+  --bg2: #120a1f;
+  --card: rgba(22, 12, 38, 0.72);
+  --border: rgba(255, 107, 214, 0.22);
+  --text: #f3ecff;
+  --muted: #a894c9;
+  --pink: #ff6bd6;
+  --purple: #9d6bff;
+  --gold: #ffd166;
+  --cyan: #6bf0ff;
+  --danger: #ff6b8a;
+  --glow: 0 0 40px rgba(255, 107, 214, 0.15);
+  --radius: 18px;
+  --font: "Outfit", system-ui, sans-serif;
+  --display: "Zen Tokyo Zoo", "Outfit", sans-serif;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body {
+  font-family: var(--font);
+  color: var(--text);
+  background: var(--bg);
+  line-height: 1.5;
+}
+
+.bg-mesh {
+  position: fixed; inset: 0; z-index: -2;
+  background:
+    radial-gradient(ellipse 80% 60% at 10% 10%, rgba(157, 107, 255, 0.18), transparent 55%),
+    radial-gradient(ellipse 70% 50% at 90% 20%, rgba(255, 107, 214, 0.14), transparent 50%),
+    radial-gradient(ellipse 60% 40% at 50% 100%, rgba(107, 240, 255, 0.08), transparent 50%),
+    linear-gradient(180deg, #0a0612, #140820 40%, #0a0612);
+}
+
+.petals {
+  position: fixed; inset: 0; z-index: -1; pointer-events: none; opacity: 0.35;
+  background-image:
+    radial-gradient(circle at 20% 30%, rgba(255, 107, 214, 0.4) 0 1px, transparent 2px),
+    radial-gradient(circle at 70% 60%, rgba(255, 107, 214, 0.3) 0 1px, transparent 2px),
+    radial-gradient(circle at 40% 80%, rgba(255, 209, 102, 0.25) 0 1px, transparent 2px);
+  background-size: 120px 120px, 180px 180px, 240px 240px;
+  animation: drift 40s linear infinite;
+}
+@keyframes drift { to { background-position: 120px 240px, -80px 360px, 60px -180px; } }
+
+.glass {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  backdrop-filter: blur(14px);
+  box-shadow: var(--glow);
+}
+
+.container { max-width: 1280px; margin: 0 auto; padding: 1.25rem 1.5rem 3rem; }
+
+.topbar {
+  display: flex; align-items: center; justify-content: space-between; gap: 1rem;
+  margin: 1rem 1.5rem 0; padding: 1rem 1.25rem; flex-wrap: wrap;
+}
+.brand { display: flex; align-items: center; gap: 0.85rem; }
+.brand-icon { font-size: 2rem; filter: drop-shadow(0 0 12px rgba(255,107,214,0.6)); }
+.brand h1 {
+  margin: 0; font-family: var(--display); font-size: 1.5rem; letter-spacing: 0.04em;
+  background: linear-gradient(90deg, var(--pink), var(--purple), var(--cyan));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.brand p { margin: 0.15rem 0 0; color: var(--muted); font-size: 0.85rem; }
+
+.topbar-actions { display: flex; gap: 0.75rem; align-items: center; }
+.range-select { display: flex; flex-direction: column; gap: 0.25rem; font-size: 0.75rem; color: var(--muted); }
+select, input[type=text], input[type=password] {
+  background: rgba(0,0,0,0.35); border: 1px solid var(--border); color: var(--text);
+  border-radius: 10px; padding: 0.55rem 0.75rem; font: inherit;
+}
+select:focus, input:focus { outline: 2px solid rgba(255,107,214,0.35); }
+
+.btn {
+  border: none; border-radius: 10px; padding: 0.6rem 1rem; font: inherit; cursor: pointer;
+  background: linear-gradient(135deg, var(--pink), var(--purple)); color: #fff; font-weight: 600;
+}
+.btn.ghost { background: transparent; border: 1px solid var(--border); color: var(--text); }
+
+.stats-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem; margin-bottom: 1.25rem;
+}
+.stat-card { padding: 1rem 1.1rem; position: relative; overflow: hidden; }
+.stat-card::after {
+  content: ""; position: absolute; top: -30px; right: -30px; width: 80px; height: 80px;
+  border-radius: 50%; background: rgba(255,255,255,0.04);
+}
+.stat-card .label { display: block; color: var(--muted); font-size: 0.78rem; text-transform: uppercase; letter-spacing: 0.06em; }
+.stat-card strong { font-size: 1.75rem; margin-top: 0.35rem; display: block; }
+.stat-card.accent strong { color: var(--cyan); }
+.stat-card.pink strong { color: var(--pink); }
+.stat-card.purple strong { color: var(--purple); }
+.stat-card.gold strong { color: var(--gold); }
+
+.charts-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1.25rem;
+}
+@media (max-width: 1024px) { .charts-grid { grid-template-columns: 1fr; } }
+
+.split-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.25rem;
+}
+@media (max-width: 900px) { .split-grid { grid-template-columns: 1fr; } }
+
+.panel { padding: 1.1rem 1.2rem; margin-bottom: 0; }
+.panel h2 {
+  margin: 0 0 1rem; font-size: 1rem; font-weight: 600;
+  display: flex; align-items: center; gap: 0.5rem;
+}
+.panel h2::before {
+  content: ""; width: 8px; height: 8px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--pink), var(--purple));
+  box-shadow: 0 0 10px var(--pink);
+}
+.panel-head { display: flex; justify-content: space-between; align-items: center; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.75rem; }
+.panel-head h2 { margin: 0; }
+.filters { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+
+.table-wrap { overflow: auto; border-radius: 12px; border: 1px solid rgba(255,255,255,0.06); }
+.table-wrap.tall { max-height: 420px; }
+table { width: 100%; border-collapse: collapse; font-size: 0.88rem; }
+th, td { padding: 0.65rem 0.75rem; text-align: left; border-bottom: 1px solid rgba(255,255,255,0.05); }
+th { color: var(--muted); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em; position: sticky; top: 0; background: rgba(10,6,18,0.95); }
+tr:hover td { background: rgba(255,107,214,0.04); }
+
+.badge {
+  display: inline-block; padding: 0.15rem 0.5rem; border-radius: 999px; font-size: 0.72rem; font-weight: 600;
+}
+.badge.online { background: rgba(107,240,255,0.15); color: var(--cyan); border: 1px solid rgba(107,240,255,0.35); }
+.badge.offline { background: rgba(255,255,255,0.05); color: var(--muted); }
+
+.event-name { color: var(--pink); font-family: ui-monospace, monospace; font-size: 0.82rem; }
+.props-preview { color: var(--muted); font-size: 0.8rem; max-width: 420px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.footer { text-align: center; padding: 1.5rem; font-size: 0.82rem; }
+.footer code { color: var(--cyan); }
+
+.login-page { display: grid; place-items: center; min-height: 100vh; padding: 1rem; }
+.login-card { width: min(380px, 100%); padding: 2rem; text-align: center; }
+.login-badge { font-size: 2rem; margin-bottom: 0.5rem; }
+.login-card h1 { font-family: var(--display); margin: 0 0 0.25rem; }
+.login-card form { display: grid; gap: 0.75rem; margin-top: 1.25rem; }
+.login-card button { width: 100%; }
+.muted { color: var(--muted); }
+.error { color: var(--danger); }
+
+canvas { max-height: 260px; }
